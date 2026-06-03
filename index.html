@@ -241,7 +241,7 @@
     .popup-box h3 { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
     .popup-box p { color: var(--muted); margin-bottom: 24px; }
 
-    /* ── HERO VIDEO ─────────────────────────────── */
+    /* ── HERO SCROLL CANVAS ──────────────────────── */
     .hero-video-wrap {
       width: 100%;
       max-width: 760px;
@@ -250,9 +250,8 @@
       position: relative;
       background: #000;
       box-shadow: 0 32px 80px rgba(0,0,0,.6);
-      cursor: ns-resize;
     }
-    .hero-video-wrap video {
+    #scrollCanvas {
       width: 100%;
       display: block;
       border-radius: 16px;
@@ -273,7 +272,22 @@
       width: 0%;
       background: var(--green);
       border-radius: 999px;
+      transition: width .08s linear;
     }
+    .scroll-hint {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,.7);
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity .4s;
+    }
+    .scroll-hint.hidden { opacity: 0; }
 
     /* ── RESPONSIVE ─────────────────────────────── */
     @media (max-width: 640px) {
@@ -311,10 +325,11 @@
       Tu agente de IA responde mensajes, negocia precios y detecta compradores serios — las 24 horas, sin que toques el móvil. Mientras tú descansas, <strong style="color:var(--text)">tu competencia ya pierde terreno.</strong>
     </p>
 
-    <!-- Inline scroll-scrubbed video -->
+    <!-- Scroll-scrubbed frame sequence -->
     <div class="hero-video-wrap animate animate-delay-3" id="heroVideoWrap">
-      <video id="heroVideo" src="wallaphone-demo.mp4" muted playsinline preload="auto" webkit-playsinline></video>
+      <canvas id="scrollCanvas"></canvas>
       <div class="hero-video-progress"><div class="hero-video-bar" id="heroVideoBar"></div></div>
+      <div class="scroll-hint" id="scrollHint">↕ Haz scroll para ver la demo</div>
     </div>
 
     <div class="hero-ctas animate animate-delay-3">
@@ -875,25 +890,72 @@
   });
 
   // ── Navbar hide on scroll down, show on scroll up
-  // ── Hero video scroll scrubber
+  // ── Scroll canvas — frame sequence scrubber
   (function () {
-    const video = document.getElementById('heroVideo');
-    const bar   = document.getElementById('heroVideoBar');
-    if (!video) return;
-    video.addEventListener('loadedmetadata', () => {
-      const duration = video.duration;
-      function scrub() {
-        const rect     = video.getBoundingClientRect();
-        const vh       = window.innerHeight;
-        const total    = rect.height + vh;
-        const scrolled = vh - rect.top;
-        const progress = Math.max(0, Math.min(1, scrolled / total));
-        video.currentTime = progress * duration;
-        bar.style.width   = (progress * 100) + '%';
+    const canvas  = document.getElementById('scrollCanvas');
+    const bar     = document.getElementById('heroVideoBar');
+    const hint    = document.getElementById('scrollHint');
+    if (!canvas) return;
+
+    const ctx        = canvas.getContext('2d');
+    const TOTAL      = 183;
+    const BASE       = 'frames/ezgif-frame-';
+    const images     = new Array(TOTAL);
+    let   loaded     = 0;
+    let   currentIdx = 0;
+
+    // Set canvas resolution (1080×1080 source)
+    canvas.width  = 1080;
+    canvas.height = 1080;
+
+    function pad(n) { return String(n).padStart(3, '0'); }
+
+    function drawFrame(idx) {
+      const img = images[idx];
+      if (img && img.complete && img.naturalWidth) {
+        ctx.drawImage(img, 0, 0, 1080, 1080);
       }
-      window.addEventListener('scroll', scrub, { passive: true });
-      scrub();
-    });
+    }
+
+    function scrub() {
+      const wrap     = document.getElementById('heroVideoWrap');
+      const rect     = wrap.getBoundingClientRect();
+      const vh       = window.innerHeight;
+      // start animating when top of wrap hits top of viewport
+      // end when bottom of wrap leaves bottom of viewport
+      const total    = rect.height + vh;
+      const scrolled = vh - rect.top;
+      const progress = Math.max(0, Math.min(1, scrolled / total));
+
+      const idx = Math.min(TOTAL - 1, Math.floor(progress * TOTAL));
+      bar.style.width = (progress * 100) + '%';
+
+      if (idx !== currentIdx || progress === 0) {
+        currentIdx = idx;
+        drawFrame(idx);
+      }
+
+      // hide hint once user starts scrolling past frame 5
+      if (hint && idx > 5) hint.classList.add('hidden');
+    }
+
+    // Preload all frames — prioritise first few for instant display
+    function loadAll() {
+      for (let i = 1; i <= TOTAL; i++) {
+        const img = new Image();
+        img.src   = BASE + pad(i) + '.jpg';
+        img.onload = () => {
+          loaded++;
+          if (i === 1) drawFrame(0); // show first frame immediately
+          if (loaded === TOTAL) scrub();
+        };
+        images[i - 1] = img;
+      }
+    }
+
+    loadAll();
+    window.addEventListener('scroll', scrub, { passive: true });
+    scrub();
   })();
 
   let lastY = 0;
