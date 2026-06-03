@@ -331,6 +331,90 @@
   </div>
 </section>
 
+<!-- ══════════════════════════════════════════ SCROLL VIDEO -->
+<div class="scroll-video-wrap" id="scrollVideoWrap">
+  <div class="scroll-video-sticky">
+    <video
+      id="scrollVideo"
+      src="wallaphone-demo.mp4"
+      muted
+      playsinline
+      preload="auto"
+      webkit-playsinline
+    ></video>
+    <div class="scroll-video-progress">
+      <div class="scroll-video-bar" id="scrollVideoBar"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .scroll-video-wrap {
+    height: 400vh;
+    position: relative;
+  }
+  .scroll-video-sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    overflow: hidden;
+  }
+  .scroll-video-sticky video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .scroll-video-progress {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(320px, 80vw);
+    height: 3px;
+    background: rgba(255,255,255,.2);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .scroll-video-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--green);
+    border-radius: 999px;
+    transition: width .1s linear;
+  }
+</style>
+
+<script>
+  (function () {
+    const wrap  = document.getElementById('scrollVideoWrap');
+    const video = document.getElementById('scrollVideo');
+    const bar   = document.getElementById('scrollVideoBar');
+
+    // Wait until metadata is loaded to know duration
+    video.addEventListener('loadedmetadata', () => {
+      const duration = video.duration;
+
+      function scrub() {
+        const rect     = wrap.getBoundingClientRect();
+        const total    = wrap.offsetHeight - window.innerHeight;
+        const scrolled = -rect.top;
+        const progress = Math.max(0, Math.min(1, scrolled / total));
+
+        video.currentTime = progress * duration;
+        bar.style.width   = (progress * 100) + '%';
+      }
+
+      window.addEventListener('scroll', scrub, { passive: true });
+      scrub(); // init on load
+    });
+  })();
+</script>
+
 <!-- ══════════════════════════════════════════ SOCIAL PROOF -->
 <div class="proof">
   <div class="proof-inner animate">
