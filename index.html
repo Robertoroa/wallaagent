@@ -241,6 +241,40 @@
     .popup-box h3 { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
     .popup-box p { color: var(--muted); margin-bottom: 24px; }
 
+    /* ── HERO VIDEO ─────────────────────────────── */
+    .hero-video-wrap {
+      width: 100%;
+      max-width: 760px;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      background: #000;
+      box-shadow: 0 32px 80px rgba(0,0,0,.6);
+      cursor: ns-resize;
+    }
+    .hero-video-wrap video {
+      width: 100%;
+      display: block;
+      border-radius: 16px;
+    }
+    .hero-video-progress {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 3px;
+      background: rgba(255,255,255,.2);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .hero-video-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--green);
+      border-radius: 999px;
+    }
+
     /* ── RESPONSIVE ─────────────────────────────── */
     @media (max-width: 640px) {
       .dash-body { grid-template-columns: 1fr 1fr; }
@@ -276,6 +310,12 @@
     <p class="hero-sub animate animate-delay-2">
       Tu agente de IA responde mensajes, negocia precios y detecta compradores serios — las 24 horas, sin que toques el móvil. Mientras tú descansas, <strong style="color:var(--text)">tu competencia ya pierde terreno.</strong>
     </p>
+
+    <!-- Inline scroll-scrubbed video -->
+    <div class="hero-video-wrap animate animate-delay-3" id="heroVideoWrap">
+      <video id="heroVideo" src="wallaphone-demo.mp4" muted playsinline preload="auto" webkit-playsinline></video>
+      <div class="hero-video-progress"><div class="hero-video-bar" id="heroVideoBar"></div></div>
+    </div>
 
     <div class="hero-ctas animate animate-delay-3">
       <a href="https://calendly.com/robertoderoa/walla-agent" target="_blank" rel="noopener" class="btn btn-green btn-lg">Agendar llamada →</a>
@@ -330,90 +370,6 @@
     </div>
   </div>
 </section>
-
-<!-- ══════════════════════════════════════════ SCROLL VIDEO -->
-<div class="scroll-video-wrap" id="scrollVideoWrap">
-  <div class="scroll-video-sticky">
-    <video
-      id="scrollVideo"
-      src="wallaphone-demo.mp4"
-      muted
-      playsinline
-      preload="auto"
-      webkit-playsinline
-    ></video>
-    <div class="scroll-video-progress">
-      <div class="scroll-video-bar" id="scrollVideoBar"></div>
-    </div>
-  </div>
-</div>
-
-<style>
-  .scroll-video-wrap {
-    height: 400vh;
-    position: relative;
-  }
-  .scroll-video-sticky {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #000;
-    overflow: hidden;
-  }
-  .scroll-video-sticky video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-  }
-  .scroll-video-progress {
-    position: absolute;
-    bottom: 28px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(320px, 80vw);
-    height: 3px;
-    background: rgba(255,255,255,.2);
-    border-radius: 999px;
-    overflow: hidden;
-  }
-  .scroll-video-bar {
-    height: 100%;
-    width: 0%;
-    background: var(--green);
-    border-radius: 999px;
-    transition: width .1s linear;
-  }
-</style>
-
-<script>
-  (function () {
-    const wrap  = document.getElementById('scrollVideoWrap');
-    const video = document.getElementById('scrollVideo');
-    const bar   = document.getElementById('scrollVideoBar');
-
-    // Wait until metadata is loaded to know duration
-    video.addEventListener('loadedmetadata', () => {
-      const duration = video.duration;
-
-      function scrub() {
-        const rect     = wrap.getBoundingClientRect();
-        const total    = wrap.offsetHeight - window.innerHeight;
-        const scrolled = -rect.top;
-        const progress = Math.max(0, Math.min(1, scrolled / total));
-
-        video.currentTime = progress * duration;
-        bar.style.width   = (progress * 100) + '%';
-      }
-
-      window.addEventListener('scroll', scrub, { passive: true });
-      scrub(); // init on load
-    });
-  })();
-</script>
 
 <!-- ══════════════════════════════════════════ SOCIAL PROOF -->
 <div class="proof">
@@ -919,6 +875,27 @@
   });
 
   // ── Navbar hide on scroll down, show on scroll up
+  // ── Hero video scroll scrubber
+  (function () {
+    const video = document.getElementById('heroVideo');
+    const bar   = document.getElementById('heroVideoBar');
+    if (!video) return;
+    video.addEventListener('loadedmetadata', () => {
+      const duration = video.duration;
+      function scrub() {
+        const rect     = video.getBoundingClientRect();
+        const vh       = window.innerHeight;
+        const total    = rect.height + vh;
+        const scrolled = vh - rect.top;
+        const progress = Math.max(0, Math.min(1, scrolled / total));
+        video.currentTime = progress * duration;
+        bar.style.width   = (progress * 100) + '%';
+      }
+      window.addEventListener('scroll', scrub, { passive: true });
+      scrub();
+    });
+  })();
+
   let lastY = 0;
   window.addEventListener('scroll', () => {
     const nav = document.querySelector('nav');
