@@ -11,7 +11,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0f1117;
+      --bg: #000000;
       --bg2: #161922;
       --bg3: #1c2030;
       --green: #48bb78;
@@ -325,22 +325,6 @@
       Tu agente de IA responde mensajes, negocia precios y detecta compradores serios — las 24 horas, sin que toques el móvil. Mientras tú descansas, <strong style="color:var(--text)">tu competencia ya pierde terreno.</strong>
     </p>
 
-    <!-- Scroll-scrubbed frame sequence -->
-    <div class="hero-video-wrap" id="heroVideoWrap">
-      <canvas id="scrollCanvas"></canvas>
-      <div class="hero-video-progress"><div class="hero-video-bar" id="heroVideoBar"></div></div>
-      <div class="scroll-hint" id="scrollHint">↕ Haz scroll para ver la demo</div>
-    </div>
-
-    <div class="hero-ctas animate animate-delay-3">
-      <a href="https://calendly.com/robertoderoa/walla-agent" target="_blank" rel="noopener" class="btn btn-green btn-lg">Agendar llamada →</a>
-      <a href="#demo" class="btn btn-outline btn-lg">Ver cómo funciona</a>
-    </div>
-
-    <p class="hero-note animate animate-delay-4">
-      <span>✓</span> Diseñado a medida para tu negocio &nbsp;·&nbsp; <span>✓</span> Operativo en 48h
-    </p>
-
     <!-- Dashboard mockup -->
     <div class="dashboard animate animate-delay-4" style="margin-top:16px;">
       <div class="dash-bar">
@@ -385,6 +369,28 @@
     </div>
   </div>
 </section>
+
+<!-- ══════════════════════════════════════════ STICKY CANVAS -->
+<div id="canvasOuter" style="height:400vh;position:relative;background:#000;">
+  <div id="canvasSticky" style="position:sticky;top:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;overflow:hidden;">
+    <canvas id="scrollCanvas" style="max-height:90vh;max-width:90vw;width:auto;display:block;"></canvas>
+    <div id="heroVideoBar" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:min(320px,70vw);height:3px;background:rgba(255,255,255,.15);border-radius:999px;overflow:hidden;">
+      <div id="videoBarFill" style="height:100%;width:0%;background:#48bb78;border-radius:999px;transition:width .08s linear;"></div>
+    </div>
+    <div id="scrollHint" style="position:absolute;bottom:36px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.5);font-size:.78rem;font-weight:600;letter-spacing:.05em;white-space:nowrap;transition:opacity .4s;">↓ Scroll para ver la demo</div>
+  </div>
+</div>
+
+<!-- CTAs post-canvas -->
+<div style="background:#000;padding:48px 20px 64px;text-align:center;">
+  <div class="hero-ctas" style="justify-content:center;">
+    <a href="https://calendly.com/robertoderoa/walla-agent" target="_blank" rel="noopener" class="btn btn-green btn-lg">Agendar llamada →</a>
+    <a href="#demo" class="btn btn-outline btn-lg">Ver cómo funciona</a>
+  </div>
+  <p class="hero-note" style="margin-top:16px;">
+    <span>✓</span> Diseñado a medida para tu negocio &nbsp;·&nbsp; <span>✓</span> Operativo en 48h
+  </p>
+</div>
 
 <!-- ══════════════════════════════════════════ SOCIAL PROOF -->
 <div class="proof">
@@ -890,21 +896,21 @@
   });
 
   // ── Navbar hide on scroll down, show on scroll up
-  // ── Scroll canvas — frame sequence scrubber
+  // ── Sticky canvas — frame sequence scrubber
   (function () {
-    const canvas  = document.getElementById('scrollCanvas');
-    const bar     = document.getElementById('heroVideoBar');
-    const hint    = document.getElementById('scrollHint');
-    if (!canvas) return;
+    const canvas = document.getElementById('scrollCanvas');
+    const fill   = document.getElementById('videoBarFill');
+    const hint   = document.getElementById('scrollHint');
+    const outer  = document.getElementById('canvasOuter');
+    if (!canvas || !outer) return;
 
-    const ctx        = canvas.getContext('2d');
-    const TOTAL      = 183;
-    const BASE       = 'frames/ezgif-frame-';
-    const images     = new Array(TOTAL);
-    let   loaded     = 0;
-    let   currentIdx = 0;
+    const ctx    = canvas.getContext('2d');
+    const TOTAL  = 183;
+    const BASE   = 'frames/ezgif-frame-';
+    const images = new Array(TOTAL);
+    let loaded   = 0;
+    let lastIdx  = -1;
 
-    // Set canvas resolution (1080×1080 source)
     canvas.width  = 1080;
     canvas.height = 1080;
 
@@ -918,36 +924,28 @@
     }
 
     function scrub() {
-      const wrap     = document.getElementById('heroVideoWrap');
-      const rect     = wrap.getBoundingClientRect();
-      const vh       = window.innerHeight;
-      // start animating when top of wrap hits top of viewport
-      // end when bottom of wrap leaves bottom of viewport
-      const total    = rect.height + vh;
-      const scrolled = vh - rect.top;
+      const rect     = outer.getBoundingClientRect();
+      const scrolled = -rect.top;                        // px scrolled into the outer
+      const total    = outer.offsetHeight - window.innerHeight; // total scrollable within outer
       const progress = Math.max(0, Math.min(1, scrolled / total));
 
       const idx = Math.min(TOTAL - 1, Math.floor(progress * TOTAL));
-      bar.style.width = (progress * 100) + '%';
+      if (fill) fill.style.width = (progress * 100) + '%';
+      if (hint && idx > 4) hint.style.opacity = '0';
 
-      if (idx !== currentIdx || progress === 0) {
-        currentIdx = idx;
+      if (idx !== lastIdx) {
+        lastIdx = idx;
         drawFrame(idx);
       }
-
-      // hide hint once user starts scrolling past frame 5
-      if (hint && idx > 5) hint.classList.add('hidden');
     }
 
-    // Preload all frames — prioritise first few for instant display
     function loadAll() {
       for (let i = 1; i <= TOTAL; i++) {
         const img = new Image();
-        img.src   = BASE + pad(i) + '.jpg';
+        img.src = BASE + pad(i) + '.jpg';
         img.onload = () => {
           loaded++;
-          if (i === 1) drawFrame(0); // show first frame immediately
-          if (loaded === TOTAL) scrub();
+          if (i === 1) drawFrame(0);
         };
         images[i - 1] = img;
       }
